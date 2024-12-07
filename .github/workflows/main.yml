@@ -1,0 +1,36 @@
+name: Build and Release VSCodium
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger for version tags
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code 🛠️
+        uses: actions/checkout@v4
+
+      - name: Set up dependencies 📦
+        run: sudo apt install nala && sudo nala update && sudo nala install -y build-essential git wget2 curl
+
+      - name: Download VSCodium source 📥
+        run: wget2 https://github.com/VSCodium/vscodium/archive/refs/heads/master.zip
+
+      - name: Extract source files 📂
+        run: unzip master.zip && mv vscodium-master vscodium
+
+      - name: Build VSCodium 🔨
+        run: |
+          cd vscodium
+          ./build/build.sh
+
+      - name: Create GitHub Release 📝
+        run: |
+          VERSION_TAG=$(git describe --tags)
+          gh release create $VERSION_TAG ./vscodium/out/* --title "VSCodium $VERSION_TAG" --notes "Release of VSCodium version $VERSION_TAG"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
